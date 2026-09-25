@@ -4,8 +4,9 @@
   "description": "Professional Blood Donor Finder website - Phase 1 Frontend UI Foundation",
   "main": "index.html",
   "scripts": {
-    "dev": "python3.13 -m http.server 3000",
-    "start": "python3.13 -m http.server 3000"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [
     "blood-donor",
@@ -14,5 +15,8 @@
     "bloodbank"
   ],
   "author": "BloodLink Team",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.4.2"
+  }
 }
