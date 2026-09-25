@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BloodLink | Professional Blood Donor Finder & Emergency Request</title>
+  <meta name="description" content="BloodLink - Real-time verified blood donor finder connecting patients, donors, and hospitals instantly." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ==========================================
+       HEADER / NAVIGATION
+       ========================================== -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="logo" id="logo-btn">
+        <div class="logo-icon">
+          <i data-lucide="droplet"></i>
+        </div>
+        Blood<span>Link</span>
+      </a>
+
+      <nav class="main-nav" id="main-nav">
+        <a href="#home" class="nav-link active" id="nav-home">Home</a>
+        <a href="#find-donors" class="nav-link" id="nav-find">Find Donors</a>
+        <a href="#request-blood" class="nav-link" id="nav-request">Request Blood</a>
+        <a href="#for-hospitals" class="nav-link" id="nav-hospitals">For Hospitals</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn btn-outline-red btn-sm" id="auth-btn">
+          <i data-lucide="user"></i> Login / Sign Up
+        </button>
+
+        <div class="user-profile-bar" id="user-profile-container" style="display: none;">
+          <div class="user-chip">
+            <div class="user-avatar" id="user-chip-avatar">U</div>
+            <div class="user-info">
+              <span class="user-name" id="user-chip-name">User Name</span>
+              <span class="user-role-badge" id="user-chip-type">Donor</span>
+            </div>
+            <div class="user-badges">
+              <span class="verification-pill unverified" id="phone-status-pill"><i data-lucide="smartphone"></i> Phone</span>
+              <span class="verification-pill unverified" id="email-status-pill"><i data-lucide="mail"></i> Email</span>
+            </div>
+          </div>
+          <button class="btn btn-outline-red btn-sm" id="logout-btn" title="Logout">
+            <i data-lucide="log-out"></i> Logout
+          </button>
+        </div>
+
+        <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle Menu">
+          <i data-lucide="menu"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       HERO SECTION
+       ========================================== -->
+  <section class="hero-section" id="home">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <i data-lucide="heart-pulse"></i> Instant Verified Donor Network
+        </div>
+        <h1 class="hero-title">
+          Connecting Donors, <span>Saving Lives</span> in Real Time
+        </h1>
+        <p class="hero-text">
+          Find available blood donors near you immediately or request urgent blood requirements for hospitals and loved ones. Simple, fast, and 100% verified.
+        </p>
+        <div class="hero-buttons">
+          <a href="#find-donors" class="btn btn-primary" id="hero-find-btn">
+            <i data-lucide="search"></i> Find Blood Donor
+          </a>
+          <button class="btn btn-secondary" id="hero-request-btn">
+            <i data-lucide="file-plus"></i> Request Blood
+          </button>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat-item">
+            <h4>15,000+</h4>
+            <p>Active Donors</p>
+          </div>
+          <div class="stat-item">
+            <h4>120+</h4>
+            <p>Partner Hospitals</p>
+          </div>
+          <div class="stat-item">
+            <h4>&lt; 15 mins</h4>
+            <p>Avg Match Time</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Card / Illustration Banner -->
+      <div class="hero-card">
+        <div class="emergency-alert-banner">
+          <div class="alert-pulse"></div>
+          <div>
+            <strong style="display: block; font-size: 0.95rem; color: var(--primary-red-dark);">Live Emergency Network Active</strong>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Donors actively ready across 25+ districts</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; text-align: center; padding: 1.5rem 1rem; background: var(--bg-main); border-radius: var(--radius-md);">
+          <i data-lucide="activity" style="width: 48px; height: 48px; color: var(--primary-red); margin-bottom: 0.75rem;"></i>
+          <h3 style="font-size: 1.1rem; margin-bottom: 0.4rem;">Emergency Need O- or A+?</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Directly filter donors by district and blood group below.</p>
+          <a href="#find-donors" class="btn btn-outline-red btn-sm btn-block">Quick Search</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       FIND DONOR SECTION
+       ========================================== -->
+  <section class="search-section" id="find-donors">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Find Blood Donors Near You</h2>
+        <p class="section-desc">Select blood group and location filters to find verified voluntary donors instantly.</p>
+      </div>
+
+      <!-- Filter Controls Form -->
+      <div class="filter-card">
+        <div class="filter-grid">
+          
+          <!-- Blood Group Filter -->
+          <div class="form-group">
+            <label for="filter-blood-group">Blood Group</label>
+            <select id="filter-blood-group" class="form-control">
+              <option value="">All Blood Groups</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+
+          <!-- State Filter -->
+          <div class="form-group">
+            <label for="filter-state">State</label>
+            <select id="filter-state" class="form-control">
+              <option value="">All States</option>
+            </select>
+          </div>
+
+          <!-- District Filter -->
+          <div class="form-group">
+            <label for="filter-district">District</label>
+            <select id="filter-district" class="form-control" disabled>
+              <option value="">Select State First</option>
+            </select>
+          </div>
+
+          <!-- Area Filter -->
+          <div class="form-group">
+            <label for="filter-area">Area / Locality</label>
+            <select id="filter-area" class="form-control" disabled>
+              <option value="">Select District First</option>
+            </select>
+          </div>
+
+          <!-- Search Button -->
+          <div class="form-group">
+            <button class="btn btn-primary" id="search-btn" style="height: 46px;">
+              <i data-lucide="search"></i> Search
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Filter Status -->
+        <div class="active-filters" id="active-filters-bar" style="display: none;">
+          <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">Active Filters:</span>
+          <div id="filter-tags-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+          <button class="btn btn-sm btn-secondary" id="clear-filters-btn" style="margin-left: auto; padding: 0.2rem 0.6rem; font-size: 0.8rem;">
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           DONOR RESULT CARDS UI
+           ========================================== -->
+      <div class="results-container">
+        <div class="results-header">
+          <div class="results-count" id="results-count-text">
+            Showing All Donors
+          </div>
+        </div>
+
+        <div class="donor-grid" id="donor-cards-grid">
+          <!-- Donor cards injected dynamically via JS -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       SIDE FEATURE BAR
+       ========================================== -->
+  <div class="side-feature-bar">
+    <div class="side-feature-item" id="side-request-btn" title="Request Blood Emergency">
+      <div class="side-feature-icon side-icon-red">
+        <i data-lucide="file-plus" style="width: 18px; height: 18px;"></i>
+      </div>
+      <span>Request Blood</span>
+    </div>
+    
+    <div class="side-feature-item" id="side-hospitals-btn" title="For Hospitals Portal">
+      <div class="side-feature-icon side-icon-teal">
+        <i data-lucide="building-2" style="width: 18px; height: 18px;"></i>
+      </div>
+      <span>For Hospitals</span>
+    </div>
+
+    <div class="side-feature-item" id="side-donor-btn" title="Register as a Donor">
+      <div class="side-feature-icon side-icon-blue">
+        <i data-lucide="heart" style="width: 18px; height: 18px;"></i>
+      </div>
+      <span>Become a Donor</span>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODALS (AUTH, REQUEST, HOSPITALS, CONTACT)
+       ========================================== -->
+
+  <!-- 1. Auth Modal (Login / Sign Up) -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="auth-modal-title">Welcome to BloodLink</h3>
+        <button class="modal-close" id="close-auth-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Auth Status & Alert Banner -->
+        <div id="auth-alert-container" style="display: none;" class="auth-alert"></div>
+
+        <div class="modal-tabs" id="auth-modal-tabs">
+          <button class="modal-tab active" id="tab-login">Login</button>
+          <button class="modal-tab" id="tab-signup">Sign Up</button>
+        </div>
+
+        <!-- Login Form -->
+        <form class="modal-form" id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" class="form-control" placeholder="user@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="login-submit-btn">
+            <span>Login</span>
+          </button>
+        </form>
+
+        <!-- Sign Up Form (hidden by default) -->
+        <form class="modal-form" id="signup-form" style="display: none;">
+          <div class="form-group">
+            <label for="signup-name">Full Name *</label>
+            <input type="text" id="signup-name" class="form-control" placeholder="e.g. Ramesh Patel" required />
+          </div>
+          <div class="form-group">
+            <label for="signup-phone">Phone Number *</label>
+            <input type="tel" id="signup-phone" class="form-control" placeholder="+91 9876543210" required />
+          </div>
+          <div class="form-group">
+            <label for="signup-email">Email Address *</label>
+            <input type="email" id="signup-email" class="form-control" placeholder="user@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="signup-usertype">User Type *</label>
+            <select id="signup-usertype" class="form-control" required>
+              <option value="">Select User Type</option>
+              <option value="Donor">Donor</option>
+              <option value="Blood Seeker">Blood Seeker</option>
+              <option value="Hospital">Hospital</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="signup-password">Create Password *</label>
+            <input type="password" id="signup-password" class="form-control" placeholder="••••••••" minlength="6" required />
+          </div>
+          <div class="form-group">
+            <label for="signup-confirm-password">Confirm Password *</label>
+            <input type="password" id="signup-confirm-password" class="form-control" placeholder="••••••••" minlength="6" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="signup-submit-btn">
+            <span>Register Account</span>
+          </button>
+        </form>
+
+        <!-- Phone OTP Verification Step UI (hidden by default) -->
+        <div id="phone-otp-container" style="display: none;" class="verification-step-card">
+          <div class="step-badge"><i data-lucide="smartphone"></i> Step: Phone OTP Verification</div>
+          <p class="step-desc">Enter the OTP sent via SMS to <strong id="otp-phone-display"></strong></p>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="otp-input">6-Digit OTP Code</label>
+            <input type="text" id="otp-input" class="form-control otp-code-input" placeholder="Enter OTP" maxlength="6" pattern="\d{6}" required />
+          </div>
+          <div id="otp-notice-area" style="margin-top: 0.75rem;"></div>
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+            <button type="button" class="btn btn-primary btn-block" id="verify-otp-btn">
+              <span>Verify OTP</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="resend-otp-btn" style="white-space: nowrap;">
+              Resend OTP
+            </button>
+          </div>
+        </div>
+
+        <!-- Email Verification Notice UI (hidden by default) -->
+        <div id="email-notice-container" style="display: none;" class="verification-step-card">
+          <div class="step-badge email-step"><i data-lucide="mail"></i> Email Verification Required</div>
+          <h4 style="font-size: 1.1rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">Check Your Email Inbox</h4>
+          <p class="step-desc">
+            We sent a verification link to <strong id="email-notice-display"></strong> via Supabase Auth.
+            Please open your email client and click the verification link to verify your email address.
+          </p>
+          <div class="auth-alert alert-info" style="margin-top: 1rem;">
+            <i data-lucide="info"></i> Account registration will be fully verified once email confirmation is completed.
+          </div>
+          <button type="button" class="btn btn-secondary btn-block" id="close-email-notice-btn" style="margin-top: 1.25rem;">
+            Got it, Return to Site
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Request Blood Modal UI -->
+  <div class="modal-overlay" id="request-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i data-lucide="file-plus" style="color: var(--primary-red);"></i> Request Blood</h3>
+        <button class="modal-close" id="close-request-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form class="modal-form" id="request-form">
+          <div class="form-group">
+            <label for="req-patient">Patient Name</label>
+            <input type="text" id="req-patient" class="form-control" placeholder="Patient Full Name" required />
+          </div>
+          <div class="form-group">
+            <label for="req-blood">Required Blood Group</label>
+            <select id="req-blood" class="form-control" required>
+              <option value="">Select Blood Group</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="req-hospital">Hospital Name & Address</label>
+            <input type="text" id="req-hospital" class="form-control" placeholder="e.g. City Care Hospital, Bandra" required />
+          </div>
+          <div class="form-group">
+            <label for="req-contact">Contact Phone Number</label>
+            <input type="tel" id="req-contact" class="form-control" placeholder="+91 Phone Number" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Submit Blood Request</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. For Hospitals Modal UI -->
+  <div class="modal-overlay" id="hospitals-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i data-lucide="building-2" style="color: var(--medical-teal);"></i> Hospital Emergency Network</h3>
+        <button class="modal-close" id="close-hospitals-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem;">
+          Partner hospitals can request bulk blood units, manage emergency donor calls, and coordinate directly with voluntary donor pools.
+        </p>
+        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem;">
+          <strong style="display: block; margin-bottom: 0.3rem;">Hospital Desk Hotline:</strong>
+          <span style="color: var(--medical-teal); font-weight: 700; font-size: 1.1rem;">+91 1800-BLOOD-LINK</span>
+        </div>
+        <form class="modal-form" id="hospital-form">
+          <div class="form-group">
+            <label for="hosp-name">Hospital Name</label>
+            <input type="text" id="hosp-name" class="form-control" placeholder="e.g. Apollo Hospital" required />
+          </div>
+          <div class="form-group">
+            <label for="hosp-code">Registration ID / Code</label>
+            <input type="text" id="hosp-code" class="form-control" placeholder="e.g. HSP-9941" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" style="background-color: var(--medical-teal);">Hospital Portal Login</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Contact Donor Modal UI -->
+  <div class="modal-overlay" id="contact-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Contact Verified Donor</h3>
+        <button class="modal-close" id="close-contact-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="contact-modal-content">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       FOOTER
+       ========================================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="logo" style="color: #ffffff;">
+            <div class="logo-icon">
+              <i data-lucide="droplet"></i>
+            </div>
+            Blood<span style="color: #fca5a5;">Link</span>
+          </a>
+          <p>Connecting voluntary blood donors with patients and hospitals to save lives when every minute counts.</p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Quick Links</h5>
+          <ul class="footer-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#find-donors">Find Donors</a></li>
+            <li><a href="#request-blood">Request Blood</a></li>
+            <li><a href="#for-hospitals">For Hospitals</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Blood Groups</h5>
+          <ul class="footer-links">
+            <li><a href="#find-donors">O Positive (O+)</a></li>
+            <li><a href="#find-donors">O Negative (O-)</a></li>
+            <li><a href="#find-donors">A Positive (A+)</a></li>
+            <li><a href="#find-donors">B Positive (B+)</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Emergency Contact</h5>
+          <ul class="footer-links">
+            <li><span style="color: #fca5a5; font-weight: 700;">24/7 Helpline: 1800-256-6354</span></li>
+            <li><span>Email: emergency@bloodlink.org</span></li>
+            <li><span>Phase 1 UI Foundation</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 BloodLink Foundation. Medical UI Foundation (Phase 1).</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- App Main Module -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
