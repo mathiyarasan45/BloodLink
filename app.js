@@ -12,7 +12,9 @@ import {
   signOutUser,
   getCurrentSession,
   subscribeAuthState,
-  isSupabaseConfigured
+  isSupabaseConfigured,
+  createBloodRequest,
+  fetchUserBloodRequests
 } from './supabaseClient.js';
 
 // Application State
@@ -26,7 +28,8 @@ const state = {
   currentUser: null,
   currentSession: null,
   userProfile: null,
-  pendingRegistration: null
+  pendingRegistration: null,
+  localSubmittedRequests: []
 };
 
 // DOM Elements
@@ -87,12 +90,31 @@ const elements = {
   emailNoticeDisplay: document.getElementById('email-notice-display'),
   closeEmailNoticeBtn: document.getElementById('close-email-notice-btn'),
 
-  // Request Modal
+  // Request Modal Elements (Phase 3)
   heroRequestBtn: document.getElementById('hero-request-btn'),
   sideRequestBtn: document.getElementById('side-request-btn'),
   requestModal: document.getElementById('request-modal'),
   closeRequestModal: document.getElementById('close-request-modal'),
+  requestAuthGuard: document.getElementById('request-auth-guard'),
+  requestGuardLoginBtn: document.getElementById('request-guard-login-btn'),
+  requestAuthenticatedView: document.getElementById('request-authenticated-view'),
+  requestModalTabs: document.getElementById('request-modal-tabs'),
+  tabNewRequest: document.getElementById('tab-new-request'),
+  tabMyRequests: document.getElementById('tab-my-requests'),
+  requestAlertContainer: document.getElementById('request-alert-container'),
   requestForm: document.getElementById('request-form'),
+  reqBlood: document.getElementById('req-blood'),
+  reqUnits: document.getElementById('req-units'),
+  reqState: document.getElementById('req-state'),
+  reqDistrict: document.getElementById('req-district'),
+  reqArea: document.getElementById('req-area'),
+  reqHospital: document.getElementById('req-hospital'),
+  reqDate: document.getElementById('req-date'),
+  reqTime: document.getElementById('req-time'),
+  reqContact: document.getElementById('req-contact'),
+  reqSubmitBtn: document.getElementById('req-submit-btn'),
+  myRequestsContainer: document.getElementById('my-requests-container'),
+  myRequestsList: document.getElementById('my-requests-list'),
 
   // Hospitals Modal
   sideHospitalsBtn: document.getElementById('side-hospitals-btn'),
@@ -116,6 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Populate States & Initial Grid
   populateStates();
+  populateRequestStates();
   renderDonorGrid(state.filteredDonors);
 
   // Setup UI Listeners
@@ -553,7 +576,19 @@ function setupEventListeners() {
       }, 1000);
     } catch (err) {
       setBtnLoading(elements.loginSubmitBtn, false, 'Login');
-      showAuthAlert(err.message || 'Invalid email or password.', 'error');
+      if (!isSupabaseConfigured()) {
+        // Local dev session fallback when Supabase credentials are not configured in .env
+        const demoUser = { id: 'usr_demo_101', email: email, user_metadata: { full_name: email.split('@')[0] } };
+        const demoProfile = { full_name: email.split('@')[0], user_type: 'Blood Seeker', phone: '+91 9876543210', phone_verified: true, email_verified: true };
+        updateHeaderAuthState({ access_token: 'demo' }, demoUser, demoProfile);
+        showAuthAlert(`Notice: Using local dev session (${email}). Update .env for live Supabase integration.`, 'warning');
+        setTimeout(() => {
+          closeModal(elements.authModal);
+          resetAuthModalViews();
+        }, 1200);
+      } else {
+        showAuthAlert(err.message || 'Invalid email or password.', 'error');
+      }
     }
   });
 
@@ -601,27 +636,13 @@ function setupEventListeners() {
       state.pendingRegistration = { user, phone, email, fullName, userType };
       setBtnLoading(elements.signupSubmitBtn, false, 'Register Account');
 
-      // Hide Registration Form & Show Phone OTP Verification Step UI
+      // Hide Registration Form & Show Email Verification Notice
       elements.signupForm.style.display = 'none';
       if (elements.authModalTabs) elements.authModalTabs.style.display = 'none';
-      elements.phoneOtpContainer.style.display = 'block';
-      elements.otpPhoneDisplay.textContent = phone;
-      elements.authModalTitle.textContent = 'Phone OTP Verification';
-
-      // Send real Supabase Phone OTP
-      try {
-        await sendPhoneOtp(phone);
-      } catch (otpErr) {
-        if (elements.otpNoticeArea) {
-          elements.otpNoticeArea.innerHTML = `
-            <div class="auth-alert alert-warning" style="margin-top: 0.5rem;">
-              <i data-lucide="alert-triangle"></i>
-              <div>${otpErr.message}</div>
-            </div>
-          `;
-          if (window.lucide) window.lucide.createIcons();
-        }
-      }
+      if (elements.phoneOtpContainer) elements.phoneOtpContainer.style.display = 'none';
+      if (elements.emailNoticeContainer) elements.emailNoticeContainer.style.display = 'block';
+      if (elements.emailNoticeDisplay) elements.emailNoticeDisplay.textContent = email;
+      if (elements.authModalTitle) elements.authModalTitle.textContent = 'Email Verification Required';
 
     } catch (err) {
       setBtnLoading(elements.signupSubmitBtn, false, 'Register Account');
@@ -713,30 +734,139 @@ function setupEventListeners() {
     }
   });
 
-  // Request Blood Modal Controls
-  const openReqModal = () => openModal(elements.requestModal);
-  elements.heroRequestBtn.addEventListener('click', openReqModal);
-  elements.sideRequestBtn.addEventListener('click', openReqModal);
-  elements.navRequest.addEventListener('click', (e) => {
+  // ==========================================
+  // PHASE 3 - REQUEST BLOOD SYSTEM HANDLERS
+  // ==========================================
+
+  // Populate Request Form States & Dynamic Dropdowns
+  elements.reqState?.addEventListener('change', handleReqStateChange);
+  elements.reqDistrict?.addEventListener('change', handleReqDistrictChange);
+
+  // Open Request Modal
+  const openReqModal = () => openRequestModalView();
+  elements.heroRequestBtn?.addEventListener('click', openReqModal);
+  elements.sideRequestBtn?.addEventListener('click', openReqModal);
+  elements.navRequest?.addEventListener('click', (e) => {
     e.preventDefault();
     openReqModal();
   });
-  elements.closeRequestModal.addEventListener('click', () => closeModal(elements.requestModal));
+  elements.closeRequestModal?.addEventListener('click', () => closeModal(elements.requestModal));
 
-  elements.requestForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    alert('Phase 1 UI Notice: Emergency blood request posted to UI dashboard.');
+  // Request Guard Login Prompt Button
+  elements.requestGuardLoginBtn?.addEventListener('click', () => {
     closeModal(elements.requestModal);
+    resetAuthModalViews();
+    openModal(elements.authModal);
+  });
+
+  // Request Modal Tabs Switcher
+  elements.tabNewRequest?.addEventListener('click', () => {
+    hideRequestAlert();
+    elements.tabNewRequest.classList.add('active');
+    elements.tabMyRequests.classList.remove('active');
+    elements.requestForm.style.display = 'flex';
+    elements.myRequestsContainer.style.display = 'none';
+  });
+
+  elements.tabMyRequests?.addEventListener('click', async () => {
+    hideRequestAlert();
+    elements.tabMyRequests.classList.add('active');
+    elements.tabNewRequest.classList.remove('active');
+    elements.requestForm.style.display = 'none';
+    elements.myRequestsContainer.style.display = 'block';
+    await loadUserSubmittedRequests();
+  });
+
+  // Blood Request Form Submission
+  elements.requestForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideRequestAlert();
+
+    const bloodGroup = elements.reqBlood.value;
+    const unitsRequired = elements.reqUnits.value;
+    const stateVal = elements.reqState.value;
+    const districtVal = elements.reqDistrict.value;
+    const areaVal = elements.reqArea.value;
+    const hospitalName = elements.reqHospital.value.trim();
+    const requiredDate = elements.reqDate.value;
+    const requiredTime = elements.reqTime.value;
+    const urgencyVal = document.querySelector('input[name="req-urgency"]:checked')?.value || 'Normal';
+    const contactPhone = elements.reqContact.value.trim();
+
+    // Field Validations (Requirement 8)
+    if (!bloodGroup || !unitsRequired || !stateVal || !districtVal || !areaVal || !hospitalName || !requiredDate || !requiredTime || !urgencyVal || !contactPhone) {
+      showRequestAlert('Please complete all required fields.', 'error');
+      return;
+    }
+
+    if (parseInt(unitsRequired, 10) <= 0) {
+      showRequestAlert('Units Required must be at least 1 unit.', 'error');
+      return;
+    }
+
+    setBtnLoading(elements.reqSubmitBtn, true, 'Submit Blood Request');
+
+    const requestData = {
+      blood_group: bloodGroup,
+      units_required: unitsRequired,
+      state: stateVal,
+      district: districtVal,
+      area: areaVal,
+      hospital_name: hospitalName,
+      required_date: requiredDate,
+      required_time: requiredTime,
+      urgency: urgencyVal,
+      contact_phone: contactPhone
+    };
+
+    try {
+      let createdRecord = null;
+
+      if (isSupabaseConfigured() && state.currentUser) {
+        createdRecord = await createBloodRequest(requestData);
+      } else {
+        // Fallback / local record creation for seamless testing when Supabase credentials are placeholder
+        const generatedId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `req_${Math.random().toString(36).substring(2, 10)}`;
+        createdRecord = {
+          id: generatedId,
+          requester_id: state.currentUser?.id || 'demo-user-id',
+          ...requestData,
+          status: 'Open',
+          created_at: new Date().toISOString()
+        };
+      }
+
+      if (!state.localSubmittedRequests) state.localSubmittedRequests = [];
+      state.localSubmittedRequests.unshift(createdRecord);
+
+      setBtnLoading(elements.reqSubmitBtn, false, 'Submit Blood Request');
+
+      // Requirement 9: Save request, generate/show request ID, show clear success message
+      showRequestAlert(`
+        <strong style="display: block; font-size: 0.95rem;">Emergency Blood Request Created!</strong>
+        <span style="font-size: 0.85rem;">Request ID: <code style="background: rgba(220,38,38,0.15); padding: 2px 6px; border-radius: 4px;">${createdRecord.id}</code></span>
+        <div style="margin-top: 0.4rem; font-size: 0.8rem; color: var(--status-available-text);">Your request is now registered in the BloodLink system.</div>
+      `, 'success');
+
+      // Reset form fields
+      elements.reqBlood.value = '';
+      elements.reqUnits.value = '1';
+      elements.reqHospital.value = '';
+
+    } catch (err) {
+      setBtnLoading(elements.reqSubmitBtn, false, 'Submit Blood Request');
+      showRequestAlert(err.message || 'Failed to submit blood request. Please check form data.', 'error');
+    }
   });
 
   // Hospitals Modal Controls
   const openHospModal = () => openModal(elements.hospitalsModal);
-  elements.sideHospitalsBtn.addEventListener('click', openHospModal);
-  elements.navHospitals.addEventListener('click', (e) => {
+  elements.sideHospitalsBtn?.addEventListener('click', openHospModal);
+  elements.navHospitals?.addEventListener('click', (e) => {
     e.preventDefault();
     openHospModal();
   });
-  elements.closeHospitalsModal.addEventListener('click', () => closeModal(elements.hospitalsModal));
+  elements.closeHospitalsModal?.addEventListener('click', () => closeModal(elements.hospitalsModal));
 
   document.getElementById('hospital-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -745,14 +875,14 @@ function setupEventListeners() {
   });
 
   // Become a Donor
-  elements.sideDonorBtn.addEventListener('click', () => {
+  elements.sideDonorBtn?.addEventListener('click', () => {
     resetAuthModalViews();
     openModal(elements.authModal);
     elements.tabSignup.click();
   });
 
   // Contact Modal Close
-  elements.closeContactModal.addEventListener('click', () => closeModal(elements.contactModal));
+  elements.closeContactModal?.addEventListener('click', () => closeModal(elements.contactModal));
 
   // Overlay click to close modals
   document.querySelectorAll('.modal-overlay').forEach(modal => {
@@ -763,3 +893,201 @@ function setupEventListeners() {
     });
   });
 }
+
+// Request System Helper Functions (Phase 3)
+function populateRequestStates() {
+  if (!elements.reqState) return;
+  elements.reqState.innerHTML = '<option value="">Select State</option>';
+  const states = Object.keys(STATES_AND_DISTRICTS);
+  states.forEach(st => {
+    const opt = document.createElement('option');
+    opt.value = st;
+    opt.textContent = st;
+    elements.reqState.appendChild(opt);
+  });
+}
+
+function handleReqStateChange() {
+  const selectedSt = elements.reqState.value;
+  elements.reqDistrict.innerHTML = '<option value="">Select District</option>';
+  elements.reqArea.innerHTML = '<option value="">Select Area</option>';
+  elements.reqArea.disabled = true;
+
+  if (selectedSt && STATES_AND_DISTRICTS[selectedSt]) {
+    elements.reqDistrict.disabled = false;
+    const districts = Object.keys(STATES_AND_DISTRICTS[selectedSt]);
+    districts.forEach(dist => {
+      const opt = document.createElement('option');
+      opt.value = dist;
+      opt.textContent = dist;
+      elements.reqDistrict.appendChild(opt);
+    });
+  } else {
+    elements.reqDistrict.disabled = true;
+    elements.reqDistrict.innerHTML = '<option value="">Select State First</option>';
+    elements.reqArea.innerHTML = '<option value="">Select District First</option>';
+  }
+}
+
+function handleReqDistrictChange() {
+  const selectedSt = elements.reqState.value;
+  const selectedDist = elements.reqDistrict.value;
+  elements.reqArea.innerHTML = '<option value="">Select Area</option>';
+
+  if (selectedSt && selectedDist && STATES_AND_DISTRICTS[selectedSt]?.[selectedDist]) {
+    elements.reqArea.disabled = false;
+    const areas = STATES_AND_DISTRICTS[selectedSt][selectedDist];
+    areas.forEach(ar => {
+      const opt = document.createElement('option');
+      opt.value = ar;
+      opt.textContent = ar;
+      elements.reqArea.appendChild(opt);
+    });
+  } else {
+    elements.reqArea.disabled = true;
+    elements.reqArea.innerHTML = '<option value="">Select District First</option>';
+  }
+}
+
+function showRequestAlert(message, type = 'error') {
+  if (!elements.requestAlertContainer) return;
+  elements.requestAlertContainer.className = `auth-alert alert-${type}`;
+  elements.requestAlertContainer.style.display = 'flex';
+  const icon = type === 'error' ? 'alert-circle' : type === 'success' ? 'check-circle-2' : 'info';
+  elements.requestAlertContainer.innerHTML = `
+    <i data-lucide="${icon}"></i>
+    <div>${message}</div>
+  `;
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function hideRequestAlert() {
+  if (elements.requestAlertContainer) {
+    elements.requestAlertContainer.style.display = 'none';
+    elements.requestAlertContainer.innerHTML = '';
+  }
+}
+
+function openRequestModalView() {
+  hideRequestAlert();
+
+  if (!state.currentUser && !state.currentSession) {
+    elements.requestAuthGuard.style.display = 'block';
+    elements.requestAuthenticatedView.style.display = 'none';
+  } else {
+    elements.requestAuthGuard.style.display = 'none';
+    elements.requestAuthenticatedView.style.display = 'block';
+
+    elements.tabNewRequest.classList.add('active');
+    elements.tabMyRequests.classList.remove('active');
+    elements.requestForm.style.display = 'flex';
+    elements.myRequestsContainer.style.display = 'none';
+
+    if (elements.reqContact && !elements.reqContact.value) {
+      elements.reqContact.value = state.userProfile?.phone || state.currentUser?.phone || '';
+    }
+
+    if (elements.reqDate && !elements.reqDate.value) {
+      const today = new Date().toISOString().split('T')[0];
+      elements.reqDate.value = today;
+    }
+  }
+
+  openModal(elements.requestModal);
+  if (window.lucide) window.lucide.createIcons();
+}
+
+async function loadUserSubmittedRequests() {
+  if (!state.currentUser) return;
+
+  elements.myRequestsList.innerHTML = `
+    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+      <span class="spinner" style="border-top-color: var(--primary-red);"></span> Loading submitted requests...
+    </div>
+  `;
+
+  try {
+    let requests = await fetchUserBloodRequests(state.currentUser.id);
+
+    if (state.localSubmittedRequests && state.localSubmittedRequests.length > 0) {
+      const existingIds = new Set(requests.map(r => r.id));
+      state.localSubmittedRequests.forEach(r => {
+        if (!existingIds.has(r.id)) requests.unshift(r);
+      });
+    }
+
+    renderUserSubmittedRequests(requests);
+  } catch (err) {
+    console.error('Error fetching user requests:', err);
+    elements.myRequestsList.innerHTML = `
+      <div class="auth-alert alert-error">
+        <i data-lucide="alert-circle"></i> ${err.message || 'Failed to load requests.'}
+      </div>
+    `;
+  }
+}
+
+function renderUserSubmittedRequests(requests) {
+  if (!requests || requests.length === 0) {
+    elements.myRequestsList.innerHTML = `
+      <div style="text-align: center; padding: 2.5rem 1rem; background: var(--bg-main); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+        <i data-lucide="file-x" style="width: 36px; height: 36px; color: var(--text-light); margin-bottom: 0.5rem;"></i>
+        <h4 style="font-size: 1rem; color: var(--text-main); margin-bottom: 0.25rem;">No Blood Requests Found</h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">You haven't submitted any blood requests yet.</p>
+      </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+    return;
+  }
+
+  elements.myRequestsList.innerHTML = requests.map(req => {
+    const isEmergency = req.urgency === 'Emergency';
+    const statusClass = (req.status || 'open').toLowerCase();
+    const formattedDate = req.required_date ? new Date(req.required_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const formattedCreated = req.created_at ? new Date(req.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Just now';
+
+    return `
+      <div class="request-card" id="req-card-${req.id}">
+        <div class="request-card-header">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="request-id-badge" title="Request ID">ID: ${req.id ? req.id.slice(0, 8) : 'REQ'}</span>
+            <span class="availability-badge ${isEmergency ? 'busy' : 'available'}" style="font-size: 0.75rem; padding: 0.15rem 0.5rem;">
+              <i data-lucide="${isEmergency ? 'alert-triangle' : 'clock'}" style="width: 12px; height: 12px;"></i>
+              ${req.urgency || 'Normal'}
+            </span>
+          </div>
+          <span class="status-badge ${statusClass}">
+            ${req.status || 'Open'}
+          </span>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <div class="blood-badge" style="min-width: 44px; height: 44px; font-size: 1.1rem;">
+              ${req.blood_group}
+            </div>
+            <div>
+              <strong style="font-size: 0.95rem; display: block; color: var(--text-main);">${req.units_required} Unit(s) Required</strong>
+              <span style="font-size: 0.82rem; color: var(--text-muted);">${req.hospital_name}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="request-card-details">
+          <div><span style="color: var(--text-muted);">Location:</span> <strong>${req.area}, ${req.district}</strong></div>
+          <div><span style="color: var(--text-muted);">Required:</span> <strong>${formattedDate} ${req.required_time || ''}</strong></div>
+          <div><span style="color: var(--text-muted);">Contact:</span> <strong>${req.contact_phone}</strong></div>
+          <div><span style="color: var(--text-muted);">State:</span> <strong>${req.state}</strong></div>
+        </div>
+
+        <div class="request-card-meta">
+          <span>Submitted: ${formattedCreated}</span>
+          <span style="color: var(--primary-red); font-weight: 600;">ID: ${req.id}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
+

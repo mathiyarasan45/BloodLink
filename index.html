@@ -353,46 +353,149 @@
     </div>
   </div>
 
-  <!-- 2. Request Blood Modal UI -->
+  <!-- 2. Request Blood Modal UI (Phase 3) -->
   <div class="modal-overlay" id="request-modal">
-    <div class="modal-card">
+    <div class="modal-card modal-lg">
       <div class="modal-header">
-        <h3><i data-lucide="file-plus" style="color: var(--primary-red);"></i> Request Blood</h3>
+        <h3><i data-lucide="file-plus" style="color: var(--primary-red);"></i> Blood Request System</h3>
         <button class="modal-close" id="close-request-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <form class="modal-form" id="request-form">
-          <div class="form-group">
-            <label for="req-patient">Patient Name</label>
-            <input type="text" id="req-patient" class="form-control" placeholder="Patient Full Name" required />
+
+        <!-- Unauthenticated Auth Guard View -->
+        <div id="request-auth-guard" style="display: none; text-align: center; padding: 1.5rem 0;">
+          <div style="width: 56px; height: 56px; background: rgba(220, 38, 38, 0.1); color: var(--primary-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto;">
+            <i data-lucide="lock" style="width: 28px; height: 28px;"></i>
           </div>
-          <div class="form-group">
-            <label for="req-blood">Required Blood Group</label>
-            <select id="req-blood" class="form-control" required>
-              <option value="">Select Blood Group</option>
-              <option value="A+">A+</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B-">B-</option>
-              <option value="AB+">AB+</option>
-              <option value="AB-">AB-</option>
-              <option value="O+">O+</option>
-              <option value="O-">O-</option>
-            </select>
+          <h4 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Authentication Required</h4>
+          <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 380px; margin: 0 auto 1.5rem auto;">
+            Please log in or create an account to submit blood requests or view your previously submitted requests.
+          </p>
+          <button class="btn btn-primary" id="request-guard-login-btn">
+            <i data-lucide="user"></i> Login / Sign Up
+          </button>
+        </div>
+
+        <!-- Authenticated View -->
+        <div id="request-authenticated-view" style="display: block;">
+          
+          <div class="modal-tabs" id="request-modal-tabs">
+            <button class="modal-tab active" id="tab-new-request">Create Blood Request</button>
+            <button class="modal-tab" id="tab-my-requests">My Submitted Requests</button>
           </div>
-          <div class="form-group">
-            <label for="req-hospital">Hospital Name & Address</label>
-            <input type="text" id="req-hospital" class="form-control" placeholder="e.g. City Care Hospital, Bandra" required />
+
+          <!-- Alert Container for Success / Errors -->
+          <div id="request-alert-container" style="display: none;" class="auth-alert"></div>
+
+          <!-- 1. Create Blood Request Form -->
+          <form class="modal-form" id="request-form">
+            
+            <div class="form-grid-2">
+              <!-- Required Blood Group -->
+              <div class="form-group">
+                <label for="req-blood">Blood Group *</label>
+                <select id="req-blood" class="form-control" required>
+                  <option value="">Select Blood Group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+
+              <!-- Units Required -->
+              <div class="form-group">
+                <label for="req-units">Units Required *</label>
+                <input type="number" id="req-units" class="form-control" min="1" max="50" value="1" placeholder="e.g. 2" required />
+              </div>
+            </div>
+
+            <!-- Location Fields: State, District, Area -->
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label for="req-state">State *</label>
+                <select id="req-state" class="form-control" required>
+                  <option value="">Select State</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="req-district">District *</label>
+                <select id="req-district" class="form-control" disabled required>
+                  <option value="">Select State First</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="req-area">Area / Locality *</label>
+                <select id="req-area" class="form-control" disabled required>
+                  <option value="">Select District First</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Hospital Name -->
+            <div class="form-group">
+              <label for="req-hospital">Hospital Name & Address *</label>
+              <input type="text" id="req-hospital" class="form-control" placeholder="e.g. City Care Hospital, Main Branch" required />
+            </div>
+
+            <!-- Required Date & Time -->
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="req-date">Required Date *</label>
+                <input type="date" id="req-date" class="form-control" required />
+              </div>
+
+              <div class="form-group">
+                <label for="req-time">Required Time *</label>
+                <input type="time" id="req-time" class="form-control" required />
+              </div>
+            </div>
+
+            <!-- Urgency Selector & Contact Phone -->
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Urgency Level *</label>
+                <div class="urgency-selector">
+                  <label class="urgency-option option-emergency">
+                    <input type="radio" name="req-urgency" value="Emergency" checked />
+                    <span class="urgency-pill"><i data-lucide="alert-triangle"></i> Emergency</span>
+                  </label>
+                  <label class="urgency-option option-normal">
+                    <input type="radio" name="req-urgency" value="Normal" />
+                    <span class="urgency-pill"><i data-lucide="clock"></i> Normal</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="req-contact">Contact Phone Number *</label>
+                <input type="tel" id="req-contact" class="form-control" placeholder="+91 9876543210" required />
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" id="req-submit-btn" style="margin-top: 0.5rem;">
+              <span>Submit Blood Request</span>
+            </button>
+          </form>
+
+          <!-- 2. My Submitted Requests Container (Hidden by default) -->
+          <div id="my-requests-container" style="display: none;">
+            <div class="my-requests-list" id="my-requests-list">
+              <!-- Dynamically populated via JS -->
+            </div>
           </div>
-          <div class="form-group">
-            <label for="req-contact">Contact Phone Number</label>
-            <input type="tel" id="req-contact" class="form-control" placeholder="+91 Phone Number" required />
-          </div>
-          <button type="submit" class="btn btn-primary btn-block">Submit Blood Request</button>
-        </form>
+
+        </div>
       </div>
     </div>
   </div>
+
 
   <!-- 3. For Hospitals Modal UI -->
   <div class="modal-overlay" id="hospitals-modal">

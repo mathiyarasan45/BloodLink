@@ -239,3 +239,67 @@ export async function getCurrentSession() {
   }
   return { session, user: session?.user || null, profile };
 }
+
+/**
+ * 9. Create Blood Request (Phase 3)
+ */
+export async function createBloodRequest(requestData) {
+  const supabase = await getSupabaseClient();
+  if (!isSupabaseConfigured()) {
+    throw new Error('Supabase project configuration required to save blood requests. Please update VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env file.');
+  }
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    throw new Error('You must be logged in to create a blood request.');
+  }
+
+  const payload = {
+    requester_id: user.id,
+    blood_group: requestData.blood_group,
+    units_required: parseInt(requestData.units_required, 10),
+    state: requestData.state,
+    district: requestData.district,
+    area: requestData.area,
+    hospital_name: requestData.hospital_name,
+    required_date: requestData.required_date,
+    required_time: requestData.required_time,
+    urgency: requestData.urgency || 'Normal',
+    contact_phone: requestData.contact_phone,
+    status: 'Open'
+  };
+
+  const { data, error } = await supabase
+    .from('blood_requests')
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to save blood request: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * 10. Fetch User Submitted Blood Requests (Phase 3)
+ */
+export async function fetchUserBloodRequests(userId) {
+  const supabase = await getSupabaseClient();
+  if (!isSupabaseConfigured() || !userId) return [];
+
+  const { data, error } = await supabase
+    .from('blood_requests')
+    .select('*')
+    .eq('requester_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.warn('Could not fetch user blood requests:', error.message);
+    return [];
+  }
+
+  return data || [];
+}
+
